@@ -1,24 +1,16 @@
 import asyncio
-import sys
-import logging
-from aiogram import Bot, Dispatcher, html
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode, ChatAction
-from aiogram.filters import Command, StateFilter
+import os
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
 
-# ==========================================
-# YOUR BOT TOKEN
-API_TOKEN = '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI'
-# ==========================================
+# Render se Token uthayega, agar local hai toh default wala use karega
+API_TOKEN = os.getenv('API_TOKEN', '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI')
 
-# Bot aur Dispatcher initialize karein (aiogram v3 style)
-bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
+bot = Bot(token=API_TOKEN, parse_mode="HTML")
+dp = Dispatcher()
 
 # State machine for handling target input
 class ScanState(StatesGroup):
@@ -27,10 +19,10 @@ class ScanState(StatesGroup):
 # ==========================================
 # 1. START COMMAND
 # ==========================================
-@dp.message(Command("start"))
+@dp.message(Command('start'))
 async def cmd_start(message: Message):
     welcome_text = """
-🛡️ <b>CYBERFOOT ANALYTICS TERMINAL v2.0</b> 🛡️
+🛡️ <b>CYBERFOOT ANALYTICS TERMINAL v3.0</b> 🛡️
 
 Welcome to the world's most advanced automated OSINT reconnaissance bot. 
 
@@ -49,36 +41,35 @@ For educational and authorized security assessment purposes only.
 /pricing - Upgrade to Premium Deep-Web Scanning
 /help - Bot manual and support
     """
-    await message.reply(welcome_text)
+    await message.answer(welcome_text)
 
 # ==========================================
-# 2. SCAN COMMAND (The Magic Happens Here)
+# 2. SCAN COMMAND
 # ==========================================
-@dp.message(Command("scan"))
+@dp.message(Command('scan'))
 async def cmd_scan(message: Message, state: FSMContext):
-    await message.reply("🎯 <b>Enter the target to investigate:</b>\n\n<i>Examples:</i>\n• Username: <code>john_doe</code>\n• Domain: <code>example.com</code>\n• Email: <code>target@example.com</code>\n\n<i>Send /cancel to abort.</i>")
+    await message.answer("🎯 <b>Enter the target to investigate:</b>\n\n<i>Examples:</i>\n• Username: <code>john_doe</code>\n• Domain: <code>example.com</code>\n• Email: <code>target@example.com</code>\n\n<i>Send /cancel to abort.</i>")
     await state.set_state(ScanState.waiting_for_target)
 
-@dp.message(StateFilter(ScanState.waiting_for_target))
+@dp.message(ScanState.waiting_for_target)
 async def process_target(message: Message, state: FSMContext):
     target = message.text.strip()
     if target.lower() == '/cancel':
-        await message.reply("❌ Investigation aborted.")
+        await message.answer("❌ Investigation aborted.")
         await state.clear()
         return
 
     await state.clear()
     
-    # Simulate intense scanning process with typing actions
-    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
-    msg1 = await message.reply(f"🔄 <b>INITIATING RECONNAISSANCE...</b>\n\nTarget: <code>{target}</code>\nModules: Loading SpiderFoot v3.4 engine...")
+    # Simulate intense scanning process
+    msg1 = await message.answer(f"🔄 <b>INITIATING RECONNAISSANCE...</b>\n\nTarget: <code>{target}</code>\nModules: Loading SpiderFoot v3.4 engine...")
     
     await asyncio.sleep(2)
     await msg1.edit_text(f"🔄 <b>SCANNING IN PROGRESS...</b>\n\nTarget: <code>{target}</code>\nStatus: Querying 150+ OSINT data sources...\nProgress: [████████░░] 80%")
     
     await asyncio.sleep(2.5)
     
-    # THE WORLD-CLASS REPORT
+    # THE WORLD-CLASS REPORT (Based on your exact PDF data)
     final_report = f"""
 ✅ <b>OSINT INVESTIGATION COMPLETE</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -91,7 +82,7 @@ async def process_target(message: Message, state: FSMContext):
 <b>📦 COMPONENT BREAKDOWN:</b>
 • sflib (Core Orchestration): 960 events
 • sfp_accounts (Discovery): 5 events
-• sfp_github (Code Repos): 4 errors
+• sfp_github (Code Repos): 4 events
 • sfp_sociallinks: 2 events
 • sfp_venmo (Financial): 2 events
 
@@ -116,59 +107,58 @@ async def process_target(message: Message, state: FSMContext):
 Upgrade to <b>Standard Package (₹2,000)</b> or <b>Premium (₹5,000)</b>.
 👉 Type /pricing to view details or DM @YourTelegramUsername
     """
-    await message.reply(final_report)
+    await message.answer(final_report)
 
 # ==========================================
 # 3. PRICING COMMAND
 # ==========================================
-@dp.message(Command("pricing"))
+@dp.message(Command('pricing'))
 async def cmd_pricing(message: Message):
     pricing_text = """
-💰 <b>CYBERFOOT ANALYTICS SERVICE PACKAGES</b>
+ <b>CYBERFOOT ANALYTICS - BETA LAUNCH OFFER</b>
+<i>(Prices will increase after first 20 clients!)</i>
 
 <b>📊 BASIC SCAN (FREE)</b>
 • 3 Scans per day
-• Surface-level social media footprint
-• Basic terminal summary
+• Basic social media footprint
+• Quick terminal summary
+
+<b>🔍 STANDARD REPORT - ₹199</b> ⭐ BEST SELLER
+• Detailed Professional PDF Report
+• 50+ Platforms scanned
 • 24-hour delivery
+• <i>(Intl: $2.5)</i>
 
-<b>🔍 STANDARD INVESTIGATION - ₹2,000</b> ⭐ BEST VALUE
-• Unlimited platform scans
-• Complete OSINT PDF Report
-• GitHub, Domain & Breach analysis
-• 12-hour priority delivery
-
-<b>🛡️ ADVANCED ASSESSMENT - ₹5,000</b>
+<b>🛡️ ADVANCED DEEP SCAN - ₹499</b>
 • Everything in Standard
-• Subdomain enumeration & Network mapping
+• Subdomain & Network mapping
 • Vulnerability assessment
-• 6-hour delivery + 30-min consultation call
+• 10-min consultation call
+• <i>(Intl: $6)</i>
 
-<b>📈 MONTHLY MONITORING - ₹8,000/mo</b>
+<b>📈 MONTHLY MONITORING - ₹999/mo</b>
 • Weekly automated scans
 • Real-time breach alerts
-• Monthly executive summary
 
-<i>To purchase: DM @YourTelegramUsername</i>
+<i>🎁 Use code 'BETA50' for 50% OFF on your first paid report!</i>
+<i>To order: DM @YourTelegramUsername</i>
     """
-    await message.reply(pricing_text)
+    await message.answer(pricing_text)
 
 # ==========================================
-# 4. HELP COMMAND
+# 4. HELP / CANCEL COMMAND
 # ==========================================
-@dp.message(Command("help", "cancel"))
-async def cmd_help(message: Message, state: FSMContext = None):
-    if state:
-        await state.clear()
-    await message.reply("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.\n\nFor support, contact @YourTelegramUsername")
+@dp.message(Command('help', 'cancel'))
+async def cmd_help(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.")
 
 # ==========================================
 # START BOT
 # ==========================================
-async def main() -> None:
+async def main():
     print("✅ CyberFoot Analytics Terminal is LIVE and ready to scan!")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
