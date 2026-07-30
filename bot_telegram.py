@@ -1,9 +1,8 @@
 import os
 import asyncio
 import logging
-from threading import Thread
 from flask import Flask
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -11,26 +10,17 @@ from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 
 # ==========================================
-# DISABLE FLASK DEVELOPMENT WARNING LOGS
+# PRODUCTION FLASK APP SETUP
 # ==========================================
+# Werkzeug ke faltu development warnings ko block karne ke liye
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
-# ==========================================
-# FLASK WEB SERVER CONFIGURATION
-# ==========================================
 app = Flask('')
 
 @app.route('/')
 def home():
     return "Bot is alive and running 24/7!"
-
-def run_web_server():
-    # Render automatic PORT environment variable deta hai
-    port = int(os.environ.get("PORT", 8080))
-    # Gunicorn is app variable ko direct handle karega, yeh fallback ke liye hai
-    app.run(host='0.0.0.0', port=port)
 
 # ==========================================
 # TELEGRAM BOT CONFIGURATION
@@ -178,20 +168,27 @@ async def cmd_help(message: Message, state: FSMContext):
     await message.answer("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.")
 
 # ==========================================
-# MAIN EXECUTION BOT LOOP
+# ASYNC BACKGROUND EXECUTION ENGINE
 # ==========================================
-async def main():
-    print("✅ CyberFoot Analytics Bot Polling Started!")
+async def start_bot():
+    print("🚀 Starting Telegram Bot polling loop...")
     await dp.start_polling(bot)
 
-# Gunicorn application ko load karega bina crash kiye background mein bot run karne ke liye
-def start_background_bot():
-    asyncio.run(main())
+# Gunicorn jab 'app' ko initialize karega, yeh hook automatic background me chalu ho jayega
+@app.before_first_request
+def activate_job():
+    def run_loop():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(start_bot())
 
-bot_thread = Thread(target=start_background_bot)
-bot_thread.daemon = True
-bot_thread.start()
+    import threading
+    thread = threading.Thread(target=run_loop)
+    thread.daemon = True
+    thread.start()
+    print("✅ Background thread successfully attached to Gunicorn server.")
 
+# Local testing aur fallback ke liye
 if __name__ == '__main__':
-    # Agar manually execute kiya jaye bina gunicorn ke
-    run_web_server()
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
