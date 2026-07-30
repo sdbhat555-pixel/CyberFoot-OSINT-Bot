@@ -1,0 +1,9 @@
+services:
+  - type: worker
+    name: CyberFoot-OSINT-Bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot_telegram.py
+    envVars:
+      - key: API_TOKEN
+        value: 8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI
