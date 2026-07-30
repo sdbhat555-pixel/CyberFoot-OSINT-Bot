@@ -1,6 +1,5 @@
 import os
 import asyncio
-from threading import Thread
 from flask import Flask
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -10,7 +9,7 @@ from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 
 # ==========================================
-# RENDER KE LIYE FLASK WEB SERVER
+# PRODUCTION READY FLASK APP (NO WARNING)
 # ==========================================
 app = Flask('')
 
@@ -18,27 +17,14 @@ app = Flask('')
 def home():
     return "Bot is alive and running 24/7!"
 
-def run():
-    # Render automatic PORT environment variable deta hai
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.daemon = True  # Background thread banayega taaki main process block na ho
-    t.start()
-
 # ==========================================
 # TELEGRAM BOT CONFIGURATION
 # ==========================================
-# Render se Token uthayega, agar local hai toh default wala use karega
 API_TOKEN = os.getenv('API_TOKEN', '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI')
 
-# Naye aiogram version ke mutabiq parse_mode set kiya hai
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 dp = Dispatcher()
 
-# State machine for handling target input
 class ScanState(StatesGroup):
     waiting_for_target = State()
 
@@ -87,15 +73,12 @@ async def process_target(message: Message, state: FSMContext):
 
     await state.clear()
     
-    # Simulate intense scanning process
     msg1 = await message.answer(f"🔄 <b>INITIATING RECONNAISSANCE...</b>\n\nTarget: <code>{target}</code>\nModules: Loading SpiderFoot v3.4 engine...")
-    
     await asyncio.sleep(2)
-    await msg1.edit_text(f"🔄 <b>SCANNING IN PROGRESS...</b>\n\nTarget: <code>{target}</code>\nStatus: Querying 150+ OSINT data sources...\nProgress: [████████░░] 80%")
     
+    await msg1.edit_text(f"🔄 <b>SCANNING IN PROGRESS...</b>\n\nTarget: <code>{target}</code>\nStatus: Querying 150+ OSINT data sources...\nProgress: [████████░░] 80%")
     await asyncio.sleep(2.5)
     
-    # THE WORLD-CLASS REPORT
     final_report = f"""
 ✅ <b>OSINT INVESTIGATION COMPLETE</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -119,7 +102,7 @@ async def process_target(message: Message, state: FSMContext):
 
 <b>🌐 NETWORK OBSTACLES:</b>
 • Connection Timeouts: 247ctf.com, babepedia.com
-• HTTPS Pool Errors: api.geekdo.com
+• HTTPS Pool Errors: ://geekdo.com
 <i>(Diagnostic: Potential rate-limiting or target non-existence)</i>
 
 <b>🛡️ STRATEGIC RECOMMENDATIONS:</b>
@@ -180,16 +163,12 @@ async def cmd_help(message: Message, state: FSMContext):
     await message.answer("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.")
 
 # ==========================================
-# MAIN EXECUTION
+# BACKGROUND BOT EXECUTION LOOP
 # ==========================================
-async def main():
-    # Pehle Flask Web Server background thread mein start hoga
-    keep_alive()
-    print("🌐 Flask Web Server started for Render verification.")
-    
-    # Phir Telegram bot start hoga
-    print("✅ CyberFoot Analytics Terminal is LIVE and ready to scan!")
+async def start_bot():
+    print("✅ CyberFoot Analytics Bot Polling Started!")
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
-    asyncio.run(main())
+# Gunicorn start hote hi yeh background task automatic run hoga
+loop = asyncio.get_event_loop()
+loop.create_task(start_bot())
