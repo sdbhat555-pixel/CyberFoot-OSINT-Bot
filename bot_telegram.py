@@ -1,7 +1,10 @@
 import os
 import asyncio
+import logging
 import requests
 import whois
+from threading import Thread
+from flask import Flask
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -12,7 +15,28 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.default import DefaultBotProperties
 
 # ==========================================
-# BOT SETUP
+# DISABLE FLASK LOGS
+# ==========================================
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
+# ==========================================
+# FLASK DUMMY SERVER FOR RENDER
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "CyberFoot OSINT Bot is alive and running 24/7!"
+
+def run_web_server():
+    # Render ka compulsory web port check pass karne ke liye
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# ==========================================
+# TELEGRAM BOT CONFIGURATION
 # ==========================================
 API_TOKEN = os.getenv('API_TOKEN', '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI')
 bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
@@ -255,11 +279,18 @@ async def payment_info(callback: CallbackQuery):
     await callback.answer()
 
 # ==========================================
-# MAIN EXECUTION
+# ENGINE LOOP FOR BACKGROUND TASK
 # ==========================================
-async def main():
-    print("🚀 Real Background Worker Polling Started...")
-    await dp.start_polling(bot)
+async def main_bot():
+    print("🚀 Telegram Bot polling starting...")
+    await dp.start_polling(bot, handle_signals=False) # Signal verification bypass kiya hai thread clash rokne ke liye
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    # Flask web server background thread me safely port listen karega
+    web_thread = Thread(target=run_web_server)
+    web_thread.daemon = True
+    web_thread.start()
+    print("🌐 Verification Web Server started successfully.")
+
+    # Main thread me event loop chakega bina crash ya signal error ke
+    asyncio.run(main_bot())
