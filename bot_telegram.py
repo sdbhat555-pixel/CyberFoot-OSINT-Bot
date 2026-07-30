@@ -1,3 +1,38 @@
+import os
+from threading import Thread
+from flask import Flask
+# ... aapke baaki imports (telebot, telegram, etc.) yahan rahenge ...
+
+# ---- 1. YEH FLASK CODE APNE FILE MEIN ADD KAREIN ----
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive and running 24/7!"
+
+def run():
+    # Render automatic PORT environment variable deta hai
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+# ----------------------------------------------------
+
+# ... Aapka purana bot ka poora code (handlers, commands) yahan chalega ...
+
+
+# ---- 2. FILE KE SABSE NEECHE JAHAN BOT START HOTAA HAI ----
+if __name__ == "__main__":
+    # Bot start hone se pehle web server background mein chalu hoga
+    keep_alive()
+    
+    print("Telegram Bot is starting...")
+    
+    # IMPORTANT: Aapka bot start karne ka jo bhi command tha, use yahan chalu rakhein.
+    # Agar aap 'telebot' use kar rahe hain to neeche wali line ka '#' hata dein:
+    # bot.infinity_polling() 
 import asyncio
 import os
 from aiogram import Bot, Dispatcher, F
@@ -162,3 +197,38 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
+    import os
+from threading import Thread
+from flask import Flask
+# ... aapke baaki imports (telebot, telegram, etc.) yahan rahenge ...
+
+# ---- 1. YEH FLASK CODE APNE FILE MEIN ADD KAREIN ----
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive and running 24/7!"
+
+def run():
+    # Render automatic PORT environment variable deta hai
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+# ----------------------------------------------------
+
+# ... Aapka purana bot ka poora code (handlers, commands) yahan chalega ...
+
+
+# ---- 2. FILE KE SABSE NEECHE JAHAN BOT START HOTAA HAI ----
+if __name__ == "__main__":
+    # Bot start hone se pehle web server background mein chalu hoga
+    keep_alive()
+    
+    print("Telegram Bot is starting...")
+    
+    # IMPORTANT: Aapka bot start karne ka jo bhi command tha, use yahan chalu rakhein.
+    # Agar aap 'telebot' use kar rahe hain to neeche wali line ka '#' hata dein:
+    # bot.infinity_polling() 
