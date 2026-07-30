@@ -3,7 +3,6 @@ import asyncio
 import logging
 import requests
 import whois
-from threading import Thread
 from flask import Flask
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
@@ -14,19 +13,31 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.client.default import DefaultBotProperties
 
-# Werkzeug warnings ko block karne ke liye
+# Werkzeug logs aur signals ko completely silent karne ke liye
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
 # ==========================================
-# PRODUCTION FLASK APP SETUP
+# FLASK WEB SERVER APP
 # ==========================================
 app = Flask('')
 
 @app.route('/')
 def home():
     return "CyberFoot OSINT Bot is alive and running 24/7!"
+
+async def run_flask_server():
+    """Flask server ko bina block kiye async task ke roop mein chalane ke liye"""
+    import werkzeug.serving
+    port = int(os.environ.get("PORT", 10000))
+    # Werkzeug ko programmatically run karenge taaki single loop handle ho sake
+    server = werkzeug.serving.make_server('0.0.0.0', port, app)
+    print(f"🌐 Production Web Server initialized on port {port}")
+    
+    while True:
+        server.handle_request()
+        await asyncio.sleep(0.5) # Server requests handle karne ka chota pause
 
 # ==========================================
 # TELEGRAM BOT CONFIGURATION
@@ -247,7 +258,7 @@ Payment ke 2 hours ke andar report milegi!
     await message.answer(payment_text)
 
 # ==========================================
-# CALLBACK HANDLERS
+# PAYMENT CALLBACK HANDLERS
 # ==========================================
 @dp.callback_query(F.data == "buy_full_report")
 async def buy_full_report(callback: CallbackQuery):
@@ -272,22 +283,14 @@ async def payment_info(callback: CallbackQuery):
     await callback.answer()
 
 # ==========================================
-# ENGINE LOOP FOR BACKGROUND TASK
+# ASYNC MAIN RUNNER (SINGLE LOOP ENGINE)
 # ==========================================
-async def main_bot():
-    print("🚀 Starting Telegram Bot polling loop...")
-    await dp.start_polling(bot)
-
-def start_background_loop():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(main_bot())
-
-bot_thread = Thread(target=start_background_loop)
-bot_thread.daemon = True
-bot_thread.start()
-print("✅ Telegram Bot initialized in background.")
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+async def main():
+    # 1. Sabse pehle Flask server task ko background loop me daalenge
+    flask_task = asyncio.create_task(run_flask_server())
+    
+    # 2. Phir Telegram Bot ko MAIN THREAD me chalne denge taaki signals error na aaye
+    print("🚀 CyberFoot OSINT Engine Main Loop Starting...")
+    try:
+        await dp.start_polling(bot, handle_signals=True)
+    finally:
