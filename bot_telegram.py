@@ -1,5 +1,7 @@
 import os
 import asyncio
+import logging
+from threading import Thread
 from flask import Flask
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -9,13 +11,26 @@ from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 
 # ==========================================
-# PRODUCTION READY FLASK APP (NO WARNING)
+# DISABLE FLASK DEVELOPMENT WARNING LOGS
+# ==========================================
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+os.environ['WERKZEUG_RUN_MAIN'] = 'true'
+
+# ==========================================
+# FLASK WEB SERVER CONFIGURATION
 # ==========================================
 app = Flask('')
 
 @app.route('/')
 def home():
     return "Bot is alive and running 24/7!"
+
+def run_web_server():
+    # Render automatic PORT environment variable deta hai
+    port = int(os.environ.get("PORT", 8080))
+    # Gunicorn is app variable ko direct handle karega, yeh fallback ke liye hai
+    app.run(host='0.0.0.0', port=port)
 
 # ==========================================
 # TELEGRAM BOT CONFIGURATION
@@ -163,12 +178,20 @@ async def cmd_help(message: Message, state: FSMContext):
     await message.answer("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.")
 
 # ==========================================
-# BACKGROUND BOT EXECUTION LOOP
+# MAIN EXECUTION BOT LOOP
 # ==========================================
-async def start_bot():
+async def main():
     print("✅ CyberFoot Analytics Bot Polling Started!")
     await dp.start_polling(bot)
 
-# Gunicorn start hote hi yeh background task automatic run hoga
-loop = asyncio.get_event_loop()
-loop.create_task(start_bot())
+# Gunicorn application ko load karega bina crash kiye background mein bot run karne ke liye
+def start_background_bot():
+    asyncio.run(main())
+
+bot_thread = Thread(target=start_background_bot)
+bot_thread.daemon = True
+bot_thread.start()
+
+if __name__ == '__main__':
+    # Agar manually execute kiya jaye bina gunicorn ke
+    run_web_server()
