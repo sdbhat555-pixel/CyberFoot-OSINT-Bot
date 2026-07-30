@@ -1,9 +1,17 @@
 import os
+import asyncio
 from threading import Thread
 from flask import Flask
-# ... aapke baaki imports (telebot, telegram, etc.) yahan rahenge ...
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message
+from aiogram.client.default import DefaultBotProperties
 
-# ---- 1. YEH FLASK CODE APNE FILE MEIN ADD KAREIN ----
+# ==========================================
+# RENDER KE LIYE FLASK WEB SERVER
+# ==========================================
 app = Flask('')
 
 @app.route('/')
@@ -17,34 +25,17 @@ def run():
 
 def keep_alive():
     t = Thread(target=run)
+    t.daemon = True  # Background thread banayega taaki main process block na ho
     t.start()
-# ----------------------------------------------------
 
-# ... Aapka purana bot ka poora code (handlers, commands) yahan chalega ...
-
-
-# ---- 2. FILE KE SABSE NEECHE JAHAN BOT START HOTAA HAI ----
-if __name__ == "__main__":
-    # Bot start hone se pehle web server background mein chalu hoga
-    keep_alive()
-    
-    print("Telegram Bot is starting...")
-    
-    # IMPORTANT: Aapka bot start karne ka jo bhi command tha, use yahan chalu rakhein.
-    # Agar aap 'telebot' use kar rahe hain to neeche wali line ka '#' hata dein:
-    # bot.infinity_polling() 
-import asyncio
-import os
-from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
-
+# ==========================================
+# TELEGRAM BOT CONFIGURATION
+# ==========================================
 # Render se Token uthayega, agar local hai toh default wala use karega
 API_TOKEN = os.getenv('API_TOKEN', '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI')
 
-bot = Bot(token=API_TOKEN, parse_mode="HTML")
+# Naye aiogram version ke mutabiq parse_mode set kiya hai
+bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 dp = Dispatcher()
 
 # State machine for handling target input
@@ -104,7 +95,7 @@ async def process_target(message: Message, state: FSMContext):
     
     await asyncio.sleep(2.5)
     
-    # THE WORLD-CLASS REPORT (Based on your exact PDF data)
+    # THE WORLD-CLASS REPORT
     final_report = f"""
 ✅ <b>OSINT INVESTIGATION COMPLETE</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -189,46 +180,16 @@ async def cmd_help(message: Message, state: FSMContext):
     await message.answer("🛠️ <b>Help Menu:</b>\n\nUse /scan to start an investigation.\nUse /pricing to view service packages.\nUse /cancel to stop any ongoing process.")
 
 # ==========================================
-# START BOT
+# MAIN EXECUTION
 # ==========================================
 async def main():
+    # Pehle Flask Web Server background thread mein start hoga
+    keep_alive()
+    print("🌐 Flask Web Server started for Render verification.")
+    
+    # Phir Telegram bot start hoga
     print("✅ CyberFoot Analytics Terminal is LIVE and ready to scan!")
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
     asyncio.run(main())
-    import os
-from threading import Thread
-from flask import Flask
-# ... aapke baaki imports (telebot, telegram, etc.) yahan rahenge ...
-
-# ---- 1. YEH FLASK CODE APNE FILE MEIN ADD KAREIN ----
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is alive and running 24/7!"
-
-def run():
-    # Render automatic PORT environment variable deta hai
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-# ----------------------------------------------------
-
-# ... Aapka purana bot ka poora code (handlers, commands) yahan chalega ...
-
-
-# ---- 2. FILE KE SABSE NEECHE JAHAN BOT START HOTAA HAI ----
-if __name__ == "__main__":
-    # Bot start hone se pehle web server background mein chalu hoga
-    keep_alive()
-    
-    print("Telegram Bot is starting...")
-    
-    # IMPORTANT: Aapka bot start karne ka jo bhi command tha, use yahan chalu rakhein.
-    # Agar aap 'telebot' use kar rahe hain to neeche wali line ka '#' hata dein:
-    # bot.infinity_polling() 
