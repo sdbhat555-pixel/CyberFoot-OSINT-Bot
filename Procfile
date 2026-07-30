@@ -1,1 +1,1 @@
-web: gunicorn bot_telegram:app
+web: python bot_telegram.py
