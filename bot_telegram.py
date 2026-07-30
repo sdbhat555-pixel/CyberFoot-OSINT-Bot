@@ -1,7 +1,10 @@
-import asyncio
 import os
+import asyncio
+import logging
 import requests
 import whois
+from threading import Thread
+from flask import Flask
 from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
@@ -9,15 +12,29 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.client.default import DefaultBotProperties
+
+# Werkzeug warnings ko block karne ke liye
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
 # ==========================================
-# BOT SETUP
+# PRODUCTION FLASK APP SETUP
+# ==========================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "CyberFoot OSINT Bot is alive and running 24/7!"
+
+# ==========================================
+# TELEGRAM BOT CONFIGURATION
 # ==========================================
 API_TOKEN = os.getenv('API_TOKEN', '8777630114:AAF5TGHDbMghPQ2-ceV7_3J7oWbiQSIqtBI')
-bot = Bot(token=API_TOKEN, parse_mode="HTML")
+bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode='HTML'))
 dp = Dispatcher()
 
-# States
 class ScanState(StatesGroup):
     waiting_for_target = State()
 
@@ -26,10 +43,10 @@ class ScanState(StatesGroup):
 # ==========================================
 async def check_social_media(username):
     platforms = {
-        'GitHub': f'https://github.com/{username}',
-        'Twitter': f'https://twitter.com/{username}',
-        'Instagram': f'https://instagram.com/{username}',
-        'LinkedIn': f'https://linkedin.com/in/{username}',
+        'GitHub': f'https://github.com{username}',
+        'Twitter': f'https://twitter.com{username}',
+        'Instagram': f'https://instagram.com{username}',
+        'LinkedIn': f'https://linkedin.com{username}',
     }
     found = []
     for platform, url in platforms.items():
@@ -46,7 +63,7 @@ async def check_domain_info(domain):
         w = whois.whois(domain)
         info = []
         if w.creation_date:
-            info.append(f"📅 Created: {w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date}")
+            info.append(f"📅 Created: {w.creation_date if isinstance(w.creation_date, list) else w.creation_date}")
         if w.registrar:
             info.append(f"🏢 Registrar: {w.registrar}")
         return info if info else ["❌ No WHOIS data found"]
@@ -55,7 +72,7 @@ async def check_domain_info(domain):
 
 async def check_ip_reputation(ip):
     try:
-        response = requests.get(f'http://ip-api.com/json/{ip}', timeout=5)
+        response = requests.get(f'http://ip-api.com{ip}', timeout=5)
         data = response.json()
         return [
             f"🌍 Country: {data.get('country', 'Unknown')}",
@@ -66,10 +83,9 @@ async def check_ip_reputation(ip):
         return ["❌ IP lookup failed"]
 
 # ==========================================
-# SPIDERFOOT DEEP SCAN SIMULATOR (Based on your KB)
+# SPIDERFOOT DEEP SCAN SIMULATOR
 # ==========================================
 async def generate_spiderfoot_deep_report(target):
-    """Generates a professional report mimicking the 984-event SpiderFoot scan"""
     report = f"""
 ✅ <b>SPIDERFOOT OSINT DEEP SCAN COMPLETE</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -92,7 +108,7 @@ async def generate_spiderfoot_deep_report(target):
 
 <b>🌐 NETWORK OBSTACLES:</b>
 • Connection Timeouts: 247ctf.com, babepedia.com
-• HTTPS Pool Errors: api.geekdo.com
+• HTTPS Pool Errors: ://geekdo.com
 <i>(Diagnostic: Potential rate-limiting or target non-existence)</i>
 
 <b>🛡️ STRATEGIC RECOMMENDATIONS:</b>
@@ -156,22 +172,18 @@ async def process_target(message: Message, state: FSMContext):
     
     await state.clear()
     
-    # Show scanning progress
     progress_msg = await message.answer("🔄 <b>Initializing SpiderFoot v3.4 engine...</b>")
-    
     await asyncio.sleep(1.5)
+    
     await progress_msg.edit_text("🔄 <b>Querying 100+ OSINT sources...</b>\nProgress: [███░░░░░░░] 30%")
-    
     await asyncio.sleep(2)
+    
     await progress_msg.edit_text("🔄 <b>Analyzing digital footprint & network obstacles...</b>\nProgress: [███████░░░] 70%")
-    
     await asyncio.sleep(2)
     
-    # Generate the professional SpiderFoot-style report
     report = await generate_spiderfoot_deep_report(target)
     await progress_msg.edit_text(report)
     
-    # Offer paid upgrade
     builder = InlineKeyboardBuilder()
     builder.button(text="📄 Get Full PDF Report - ₹199", callback_data="buy_full_report")
     builder.button(text="💳 Payment Methods", callback_data="payment_info")
@@ -235,7 +247,7 @@ Payment ke 2 hours ke andar report milegi!
     await message.answer(payment_text)
 
 # ==========================================
-# PAYMENT CALLBACK HANDLERS
+# CALLBACK HANDLERS
 # ==========================================
 @dp.callback_query(F.data == "buy_full_report")
 async def buy_full_report(callback: CallbackQuery):
@@ -245,34 +257,37 @@ async def buy_full_report(callback: CallbackQuery):
         "📱 UPI: <code>sdbhat555-6@oksbi</code>\n"
         "💰 Amount: ₹199\n"
         "👤 Name: Shahid Rashid\n\n"
-        "<i>Note: Include your Telegram username in payment note.</i>\n\n"
-        "After payment, send screenshot to: @YourTelegramUsername\n"
-        "Report will be delivered within 2 hours.",
-        reply_markup=None
+        "<i>Screenshot lekar support ko bhejein!</i>"
     )
     await callback.answer()
 
 @dp.callback_query(F.data == "payment_info")
 async def payment_info(callback: CallbackQuery):
     await callback.message.answer(
-        "💰 <b>PAYMENT METHODS</b>\n\n"
-        "<b>🇮🇳 India:</b>\n"
-        "• UPI: <code>sdbhat555-6@oksbi</code>\n"
-        "• PhonePe / Google Pay / Paytm\n\n"
-        "<b>📦 Packages:</b>\n"
-        "• Basic: FREE (3 scans/day)\n"
-        "• Pro: ₹199 (Full 15-page PDF report)\n"
-        "• Premium: ₹499 (Deep scan + consultation)\n"
-        "• Monthly: ₹2,999 (Unlimited)"
+        "💳 <b>UPI Details:</b>\n"
+        "UPI ID: <code>sdbhat555-6@oksbi</code>\n"
+        "Name: Shahid Rashid\n\n"
+        "Pay karke screenshot user support par share karein."
     )
     await callback.answer()
 
 # ==========================================
-# START BOT
+# ENGINE LOOP FOR BACKGROUND TASK
 # ==========================================
-async def main():
-    print("✅ CyberFoot Analytics Bot v4.0 is LIVE and ready to scan!")
+async def main_bot():
+    print("🚀 Starting Telegram Bot polling loop...")
     await dp.start_polling(bot)
 
+def start_background_loop():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(main_bot())
+
+bot_thread = Thread(target=start_background_loop)
+bot_thread.daemon = True
+bot_thread.start()
+print("✅ Telegram Bot initialized in background.")
+
 if __name__ == '__main__':
-    asyncio.run(main())
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
